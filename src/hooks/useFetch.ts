@@ -1,34 +1,41 @@
 import { useEffect, useState } from "react";
 import axios, { AxiosError } from "axios";
 
-export function useFetch<T>(url: string) {
-  const [data, setData] = useState<T | null>(null);
+export function useFetch(url: string) {
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true; // Prevent state update on unmounted components
-
-    async function fetchData() {
-      try {
-        const response = await axios.get<T>(url);
-        if (isMounted) {
-          setData(response.data);
-          setLoading(false);
-        }
-      } catch (err) {
-        const axiosErr = err as AxiosError;
-        if (isMounted) {
-          setError(axiosErr.message);
-          setLoading(false);
-        }
-      }
+  // Your fetchUser logic placed inside the hook
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(url);
+      return response.data;
+    } catch (err) {
+      const axiosErr = err as AxiosError;
+      throw new Error(`Error in getting data: ${axiosErr.message}`);
     }
+  };
 
-    fetchData();
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchData()
+      .then((fetchedData) => {
+        if (isMounted) {
+          setData(fetchedData);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(err.message);
+          setLoading(false);
+        }
+      });
 
     return () => {
-      isMounted = false; // cleanup
+      isMounted = false;
     };
   }, [url]);
 
